@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Overview{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Lab overview</h1>
+    <p>Review submissions, check similarity, and manage viva questions and assignments.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-ai" href="{{ url_for('teacher.generate_form') }}"><i class="bi bi-stars"></i> Generate viva questions</a>
+    <a class="btn btn-outline-primary" href="{{ url_for('teacher.new_assignment') }}"><i class="bi bi-plus-lg"></i> New assignment</a>
+  </div>
+</div>
+
+<div class="stats">
+  <a class="stat" href="{{ url_for('teacher.questions', status='published') }}"><div class="stat-num">{{ counts.get('published', 0) }}</div><div class="stat-label">Published viva questions</div></a>
+  <a class="stat" href="{{ url_for('teacher.questions', status='draft') }}"><div class="stat-num">{{ counts.get('draft', 0) }}</div><div class="stat-label">Drafts to review</div></a>
+  <div class="stat"><div class="stat-num">{{ students|length }}</div><div class="stat-label">Students</div></div>
+  <div class="stat"><div class="stat-num">{{ assignments|sum(attribute='submission_count') }}</div><div class="stat-label">Program submissions</div></div>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-6">
+    <section class="panel" aria-labelledby="a-h">
+      <div class="panel-head"><h2 id="a-h">Assignments</h2></div>
+      <ul class="rows">
+        {% for a in assignments %}
+          <li>
+            <a class="row-link" href="{{ url_for('teacher.assignment_detail', assignment_id=a.id) }}">
+              <div class="row-meta">{{ a.experiment }}</div>
+              <div class="d-flex justify-content-between gap-2 align-items-center">
+                <span>{{ a.title }}</span>
+                <span class="d-flex gap-1">
+                  <span class="pill">{{ a.submission_count }} submission{{ '' if a.submission_count == 1 else 's' }}</span>
+                  {% if a.flagged %}<span class="pill pill-partial" title="Pairs above the similarity warning threshold"><i class="bi bi-flag"></i> {{ a.flagged }} similar</span>{% endif %}
+                </span>
+              </div>
+            </a>
+          </li>
+        {% else %}
+          <li class="empty">No assignments yet. <a href="{{ url_for('teacher.new_assignment') }}">Create the first one</a>.</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+  <div class="col-xl-6">
+    <section class="panel" aria-labelledby="s-h">
+      <div class="panel-head"><h2 id="s-h">Students</h2></div>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead><tr><th>Name</th><th class="text-end">Viva answers</th><th class="text-end">Viva average</th><th class="text-end">Programs</th></tr></thead>
+          <tbody>
+          {% for s in students %}
+            <tr>
+              <td><a href="{{ url_for('teacher.student_detail', student_id=s.id) }}">{{ s.full_name }}</a><div class="row-meta">{{ s.username }}</div></td>
+              <td class="text-end">{{ s.attempts }}</td>
+              <td class="text-end">{{ (s.viva_avg ~ '%') if s.viva_avg is not none else '–' }}</td>
+              <td class="text-end">{{ s.submissions }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="4" class="text-muted">No students have registered yet.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

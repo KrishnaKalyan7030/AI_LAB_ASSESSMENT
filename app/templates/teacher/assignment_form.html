@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}New assignment{% endblock %}
+{% block content %}
+<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ url_for('teacher.dashboard') }}">Overview</a> / New assignment</nav>
+<div class="page-head"><div><h1>New programming assignment</h1>
+  <p>Students write one Python function. The test engine runs it against your test cases.</p></div></div>
+<form method="post" class="panel" novalidate>
+  <div class="panel-body">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="row g-3">
+      <div class="col-md-6"><label class="form-label" for="title">Title</label>
+        <input class="form-control" id="title" name="title" value="{{ form.get('title', '') }}" required maxlength="200"></div>
+      <div class="col-md-6"><label class="form-label" for="experiment">Experiment or topic</label>
+        <input class="form-control" id="experiment" name="experiment" value="{{ form.get('experiment', '') }}" required maxlength="200" placeholder="A* Search"></div>
+      <div class="col-12"><label class="form-label" for="description">What students must do</label>
+        <textarea class="form-control" id="description" name="description" rows="3" required>{{ form.get('description', '') }}</textarea></div>
+      <div class="col-md-4"><label class="form-label" for="function_name">Function name</label>
+        <input class="form-control font-mono" id="function_name" name="function_name" value="{{ form.get('function_name', '') }}" required placeholder="solve"></div>
+      <div class="col-md-8"><label class="form-label" for="starter_code">Starter code (optional)</label>
+        <textarea class="form-control code-editor" id="starter_code" name="starter_code" rows="4">{{ form.get('starter_code', '') }}</textarea></div>
+      <div class="col-12"><label class="form-label" for="tests">Test cases, one per line</label>
+        <textarea class="form-control code-editor" id="tests" name="tests" rows="6" required aria-describedby="tests-help" placeholder='{"args": [[0, 0], [3, 4]], "expected": 7, "description": "Diagonal"}
+{"args": [[1, 1], [1, 1]], "expected": 0, "hidden": true}'>{{ form.get('tests', '') }}</textarea>
+        <div class="form-text" id="tests-help">Each line is JSON: <code>args</code> is the list of arguments, <code>expected</code> is the return value, and <code>"hidden": true</code> hides that test's inputs from students.</div></div>
+    </div>
+    <button class="btn btn-primary mt-4">Create assignment</button>
+  </div>
+</form>
+{% endblock %}

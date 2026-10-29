@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import source_badge, meter, tests_pill %}
+{% block title %}My work{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Hello, {{ g.user.full_name.split(' ')[0] }}</h1>
+    <p>Answer viva questions and submit lab programs. Your results appear below as soon as they are marked.</p>
+  </div>
+  <a class="btn btn-outline-primary" href="{{ url_for('student.summary') }}"><i class="bi bi-graph-up"></i> See my progress</a>
+</div>
+
+<div class="row g-4">
+  <div class="col-xl-7">
+    <section class="panel h-100" aria-labelledby="viva-h">
+      <div class="panel-head"><h2 id="viva-h">Viva questions</h2><span class="panel-note">{{ questions|length }} open</span></div>
+      <ul class="rows">
+        {% for q in questions %}
+          <li>
+            <a class="row-link" href="{{ url_for('student.viva_question', question_id=q.id) }}">
+              <div class="d-flex justify-content-between gap-3">
+                <div>
+                  <div class="row-meta">{{ q.experiment }}, {{ q.difficulty }}, {{ q.max_score }} marks</div>
+                  <div>{{ q.question }}</div>
+                </div>
+                {% if q.last_score is not none %}
+                  <span class="pill align-self-start">Last {{ '%g'|format(q.last_score) }}/{{ q.max_score }}</span>
+                {% else %}
+                  <span class="pill pill-draft align-self-start">Not answered</span>
+                {% endif %}
+              </div>
+            </a>
+          </li>
+        {% else %}
+          <li class="empty">Your teacher hasn't published any viva questions yet.</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+
+  <div class="col-xl-5">
+    <section class="panel h-100" aria-labelledby="asg-h">
+      <div class="panel-head"><h2 id="asg-h">Programming assignments</h2></div>
+      <ul class="rows">
+        {% for a in assignments %}
+          <li>
+            <a class="row-link" href="{{ url_for('student.assignment', assignment_id=a.id) }}">
+              <div class="row-meta">{{ a.experiment }}</div>
+              <div class="d-flex justify-content-between gap-2 align-items-center">
+                <span>{{ a.title }}</span>
+                {% if a.best_passed is not none %}{{ tests_pill(a.best_passed, a.test_count) }}
+                {% else %}<span class="pill pill-draft">Not started</span>{% endif %}
+              </div>
+            </a>
+          </li>
+        {% else %}
+          <li class="empty">No assignments yet.</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+
+  <div class="col-xl-7">
+    <section class="panel" aria-labelledby="res-h">
+      <div class="panel-head"><h2 id="res-h">Recent viva results</h2></div>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead><tr><th>Question</th><th style="width: 30%">Score</th><th>Marked by</th></tr></thead>
+          <tbody>
+          {% for a in attempts %}
+            <tr>
+              <td><a href="{{ url_for('shared.view_attempt', attempt_id=a.id) }}">{{ a.question|truncate(64) }}</a></td>
+              <td>
+                {% if a.score is not none %}{{ meter(a.score, a.max_score) }}
+                {% elif a.status == 'ai_failed' %}<span class="pill pill-fail">Not marked, retry</span>
+                {% else %}<span class="pill pill-draft">Waiting</span>{% endif %}
+              </td>
+              <td>{{ source_badge(a.source) }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="3" class="text-muted">No answers yet. Pick a viva question above to start.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-xl-5">
+    <section class="panel" aria-labelledby="sub-h">
+      <div class="panel-head"><h2 id="sub-h">Recent submissions</h2></div>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead><tr><th>Assignment</th><th>Tests</th></tr></thead>
+          <tbody>
+          {% for s in submissions %}
+            <tr>
+              <td><a href="{{ url_for('shared.view_submission', submission_id=s.id) }}">{{ s.title }}</a>
+                <div class="row-meta">{{ s.created_at }}</div></td>
+              <td>{{ tests_pill(s.passed, s.total, s.static_errors) }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="2" class="text-muted">No submissions yet.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

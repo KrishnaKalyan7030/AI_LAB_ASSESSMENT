@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import source_badge, severity_badge, engine_badge %}
+{% block title %}Submission {{ sub.id }}{% endblock %}
+{% block content %}
+{% set passed = rows|selectattr('passed')|list|length %}
+<nav class="crumbs" aria-label="Breadcrumb">
+  <a href="{{ url_for('auth.index') }}">{{ 'Overview' if g.user.role == 'teacher' else 'My work' }}</a> /
+  {% if g.user.role == 'teacher' %}<a href="{{ url_for('teacher.assignment_detail', assignment_id=sub.assignment_id) }}">{{ sub.title }}</a>
+  {% else %}<a href="{{ url_for('student.assignment', assignment_id=sub.assignment_id) }}">{{ sub.title }}</a>{% endif %}
+  / Submission {{ sub.id }}
+</nav>
+<div class="page-head">
+  <div>
+    <h1>{{ sub.title }}</h1>
+    <p>Submitted by {{ sub.student_name }} on {{ sub.created_at }}</p>
+  </div>
+  {% if g.user.role == 'student' %}
+    <a class="btn btn-outline-primary" href="{{ url_for('student.assignment', assignment_id=sub.assignment_id) }}"><i class="bi bi-pencil"></i> Edit and resubmit</a>
+  {% endif %}
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <section class="panel is-engine mb-4" aria-labelledby="tr-h">
+      <div class="panel-head">
+        <h2 id="tr-h">{% if static_errors %}Not run{% else %}{{ passed }}/{{ rows|length }} tests passed{% endif %}</h2>
+        {{ engine_badge() }}
+      </div>
+      {% if static_errors %}
+        <div class="panel-body">
+          <p class="mb-2">Your code wasn't run because it failed these safety or syntax checks:</p>
+          <ul class="small mb-0">{% for e in static_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+        </div>
+      {% else %}
+      <ul class="rows small">
+        {% for r in rows %}
+          <li>
+            <div class="d-flex justify-content-between gap-2">
+              <span class="fw-medium">
+                {{ 'Hidden test' if r.is_hidden and not show_hidden else (r.description or 'Test ' ~ loop.index) }}
+                {% if r.is_hidden and show_hidden %}<span class="pill pill-draft ms-1">hidden</span>{% endif %}
+              </span>
+              {% if r.passed %}<span class="text-success fw-semibold"><i class="bi bi-check-lg"></i> Passed</span>
+              {% else %}<span class="text-danger fw-semibold"><i class="bi bi-x-lg"></i> Failed</span>{% endif %}
+            </div>
+            {% if not r.is_hidden or show_hidden %}
+              <div class="text-muted mt-1">Input <code>{{ r.args_json }}</code>, expected <code>{{ r.expected_json }}</code>{% if r.actual_json %}, got <code>{{ r.actual_json }}</code>{% endif %}</div>
+              {% if r.stdout %}<div class="text-muted">Printed <code>{{ r.stdout|truncate(160) }}</code></div>{% endif %}
+            {% endif %}
+            {% if r.error %}<div class="text-danger mt-1"><code>{{ r.error }}</code></div>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+
+    <section class="panel" aria-labelledby="code-h">
+      <div class="panel-head"><h2 id="code-h">Submitted code</h2></div>
+      <pre class="code-block">{% for line in sub.code.splitlines() %}<span class="ln">{{ loop.index }}</span>{{ line }}
+{% endfor %}</pre>
+    </section>
+  </div>
+
+  <div class="col-lg-6">
+    <section class="panel is-ai mb-4" id="assist" aria-labelledby="as-h">
+      <div class="panel-head"><h2 id="as-h">Help with this submission</h2>{% if assist %}{{ source_badge(assist.source, assist.model) }}{% endif %}</div>
+      <div class="panel-body">
+        {% if assist_payload %}
+          <div class="notice notice-ai small mb-3">The AI explains the test engine's results; it never changes them. Treat its suggestions as guidance.</div>
+          <h3>What your code does</h3>
+          <p class="small">{{ assist_payload.code_explanation }}</p>
+          {% if assist_payload.failed_test_explanations %}
+            <h3>Why tests failed</h3>
+            <ul class="small">{% for f in assist_payload.failed_test_explanations %}<li><strong>{{ f.test }}:</strong> {{ f.explanation }}</li>{% endfor %}</ul>
+          {% endif %}
+          {% if assist_payload.likely_logical_errors %}
+            <h3>Likely logic errors</h3>
+            <ul class="small">{% for e in assist_payload.likely_logical_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+          {% endif %}
+          <h3>Suggested improvements</h3>
+          <ul class="small">{% for s in assist_payload.improvement_suggestions %}<li>{{ s }}</li>{% else %}<li>None</li>{% endfor %}</ul>
+          {% if assist_payload.encouragement %}<p class="small fst-italic">{{ assist_payload.encouragement }}</p>{% endif %}
+        {% else %}
+          <p class="small text-muted">Ask {{ ai_name }} to explain failed tests, point out likely logic errors and suggest improvements. Your test results stay exactly as they are.</p>
+        {% endif %}
+        {% if not static_errors %}
+        <form method="post" action="{{ url_for('shared.programming_assist', submission_id=sub.id) }}" data-busy-form>
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-ai btn-sm" data-busy-text="Asking {{ ai_name }}…"><i class="bi bi-stars"></i> {{ 'Explain again' if assist else 'Explain with ' ~ ai_name }}</button>
+        </form>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="panel" id="quality" aria-labelledby="q-h">
+      <div class="panel-head"><h2 id="q-h">Code quality review</h2>{% if quality %}{{ source_badge(quality.source, quality.model) }}{% endif %}</div>
+      <div class="panel-body">
+        {% if quality_payload %}
+          <div class="notice {{ 'notice-rule' if quality.source == 'rule_based' else 'notice-ai' }} small mb-3">
+            These findings are <strong>suggestions, not guaranteed defects</strong>{% if quality.source != 'rule_based' %}. They were generated by AI and may be wrong.{% else %}. They come from fixed static rules, not AI.{% endif %}
+          </div>
+          <p class="small">{{ quality_payload.summary }}</p>
+          {% if quality_payload.findings %}
+          <ul class="rows small border rounded">
+            {% for f in quality_payload.findings %}
+              <li>
+                <div class="d-flex gap-2 align-items-baseline flex-wrap">
+                  {{ severity_badge(f.severity) }}
+                  <strong>{{ f.title }}</strong>
+                  <span class="text-muted">{{ f.category }}{% if f.line %}, line {{ f.line }}{% endif %}</span>
+                </div>
+                <div class="mt-1">{{ f.explanation }}</div>
+                <div class="text-muted mt-1">Try: {{ f.recommendation }}</div>
+              </li>
+            {% endfor %}
+          </ul>
+          {% else %}<p class="small text-muted">No findings.</p>{% endif %}
+        {% else %}
+          <p class="small text-muted">Get a review of readability, naming, structure, comments and possible logic issues.</p>
+        {% endif %}
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <form method="post" action="{{ url_for('shared.quality_review', submission_id=sub.id) }}" data-busy-form>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-ai btn-sm" data-busy-text="Reviewing…"><i class="bi bi-stars"></i> Review with {{ ai_name }}</button>
+          </form>
+          {% if allow_fallback %}
+          <form method="post" action="{{ url_for('shared.quality_rules', submission_id=sub.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-rule btn-sm"><i class="bi bi-rulers"></i> Quick rule-based check (not AI)</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Viva question{% endblock %}
+{% block content %}
+<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ url_for('student.dashboard') }}">My work</a> / {{ question.experiment }}</nav>
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="page-head mb-3">
+      <div>
+        <h1>{{ question.question }}</h1>
+        <p>{{ question.experiment }}, {{ question.difficulty }}. Worth {{ question.max_score }} marks.</p>
+      </div>
+    </div>
+    <form method="post" data-busy-form class="panel">
+      <div class="panel-body">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="form-label" for="answer">Your answer</label>
+        <textarea class="form-control" id="answer" name="answer" rows="10" maxlength="{{ max_chars }}" required data-counter="#answer-count" aria-describedby="answer-help">{{ answer or '' }}</textarea>
+        <div class="d-flex justify-content-between mt-2 small text-muted" id="answer-help">
+          <span>Write it in your own words, as you would explain it in the viva.</span>
+          <span><span id="answer-count">0</span>/{{ max_chars }}</span>
+        </div>
+        <button class="btn btn-ai mt-3" data-busy-text="Marking with {{ ai_name }}…"><i class="bi bi-send"></i> Submit for marking</button>
+      </div>
+    </form>
+  </div>
+  <div class="col-lg-4">
+    <div class="panel">
+      <div class="panel-body small">
+        <h2 class="h3">How marking works</h2>
+        <p class="mb-2">{{ ai_name }} compares your answer with your teacher's reference answer and marking scheme, then gives a score and feedback.</p>
+        <p class="mb-0 text-muted">Scores are checked by the app before they are saved. If the AI can't be reached, your answer is kept and you can retry.</p>
+      </div>
+    </div>
+    {% if not ai_configured %}
+      <div class="notice notice-rule mt-3">AI marking isn't set up on this server yet. Your answer will be saved, and you can retry later{% if allow_fallback %} or ask for a rule-based estimate{% endif %}.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

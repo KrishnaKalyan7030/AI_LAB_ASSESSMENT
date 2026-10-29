@@ -1,0 +1,40 @@
+{# Shared UI pieces. Colour encodes the source of a result:
+   teal = AI, green = test engine, amber = rule-based (non-AI). #}
+
+{% macro source_badge(source, model=None) -%}
+  {% set names = {'groq': 'Groq AI', 'gemini': 'Gemini AI', 'claude': 'Claude AI'} %}
+  {% if source in names %}
+    <span class="src src-ai" title="Produced by the {{ names[source] }} API"><i class="bi bi-stars"></i>{{ names[source] }}{% if model %} <span class="src-model">{{ model }}</span>{% endif %}</span>
+  {% elif source == 'rule_based' %}
+    <span class="src src-rule" title="Produced by fixed rules, not by AI"><i class="bi bi-rulers"></i>Rule-based, not AI</span>
+  {% endif %}
+{%- endmacro %}
+
+{% macro engine_badge() -%}
+  <span class="src src-engine" title="Results from actually running the code"><i class="bi bi-check2-square"></i>Test engine</span>
+{%- endmacro %}
+
+{% macro meter(score, max_score) -%}
+  {% set pct = (100 * score / max_score) if max_score else 0 %}
+  <div class="meter">
+    <div class="meter-track" role="progressbar" aria-label="Score" aria-valuenow="{{ pct|round|int }}" aria-valuemin="0" aria-valuemax="100">
+      <div class="meter-fill {{ 'good' if pct >= 75 else ('mid' if pct >= 50 else 'low') }}" style="width: {{ pct }}%"></div>
+    </div>
+    <span class="meter-text">{{ '%g'|format(score) }}/{{ '%g'|format(max_score) }}</span>
+  </div>
+{%- endmacro %}
+
+{% macro tests_pill(passed, total, rejected=False) -%}
+  {% if rejected %}<span class="pill pill-fail">Not run</span>
+  {% elif total and passed == total %}<span class="pill pill-pass">{{ passed }}/{{ total }} passed</span>
+  {% elif passed %}<span class="pill pill-partial">{{ passed }}/{{ total }} passed</span>
+  {% else %}<span class="pill pill-fail">{{ passed }}/{{ total }} passed</span>{% endif %}
+{%- endmacro %}
+
+{% macro severity_badge(severity) -%}
+  <span class="sev sev-{{ severity }}">{{ severity|capitalize }}</span>
+{%- endmacro %}
+
+{% macro csrf() -%}
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{%- endmacro %}

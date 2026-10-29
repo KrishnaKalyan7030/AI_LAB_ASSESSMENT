@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import source_badge %}
+{% block title %}Progress{% endblock %}
+{% block content %}
+{% if g.user.role == 'teacher' %}
+<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ url_for('teacher.dashboard') }}">Overview</a> /
+  <a href="{{ url_for('teacher.student_detail', student_id=student.id) }}">{{ student.full_name }}</a> / Progress</nav>
+{% endif %}
+<div class="page-head">
+  <div>
+    <h1>{{ 'My progress' if g.user.role == 'student' else 'Progress of ' ~ student.full_name }}</h1>
+    <p>A summary built only from marked viva answers and test results{{ '' if g.user.role == 'student' else ' for this student' }}.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <form method="post" action="{{ action }}" data-busy-form>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-ai" data-busy-text="Summarising…"><i class="bi bi-stars"></i> {{ 'Update' if summary else 'Create' }} summary with {{ ai_name }}</button>
+    </form>
+    {% if allow_fallback %}
+    <form method="post" action="{{ rules_action }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-rule"><i class="bi bi-rulers"></i> Rule-based summary</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+{% if payload %}
+  {% if payload.stats %}
+  <div class="stats">
+    <div class="stat"><div class="stat-num">{{ payload.stats.overall_percent if payload.stats.overall_percent is not none else '–' }}{{ '%' if payload.stats.overall_percent is not none }}</div><div class="stat-label">Overall average</div></div>
+    <div class="stat"><div class="stat-num">{{ payload.stats.assessment_count }}</div><div class="stat-label">Marked assessments</div></div>
+    <div class="stat"><div class="stat-num">{{ payload.stats.topics|length }}</div><div class="stat-label">Topics covered</div></div>
+  </div>
+  {% endif %}
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <section class="panel {{ 'is-ai' if summary.source != 'rule_based' }}" aria-labelledby="sum-h">
+        <div class="panel-head"><h2 id="sum-h">Summary</h2>{{ source_badge(summary.source, summary.model) }}</div>
+        <div class="panel-body">
+          <p>{{ payload.overview }}</p>
+          <div class="row g-3">
+            <div class="col-sm-6"><h3>Strong topics</h3><ul class="concepts got">{% for t in payload.strong_topics %}<li>{{ t }}</li>{% else %}<li>None yet</li>{% endfor %}</ul></div>
+            <div class="col-sm-6"><h3>Needs work</h3><ul class="concepts missing">{% for t in payload.weak_topics %}<li>{{ t }}</li>{% else %}<li>None</li>{% endfor %}</ul></div>
+          </div>
+          <h3 class="mt-4">Revise next</h3>
+          <ul>{% for t in payload.revision_topics %}<li>{{ t }}</li>{% else %}<li class="text-muted">Nothing urgent</li>{% endfor %}</ul>
+          <h3>Study plan</h3>
+          <ul class="mb-0">{% for t in payload.study_suggestions %}<li>{{ t }}</li>{% endfor %}</ul>
+          <p class="small text-muted mt-3 mb-0">Created {{ summary.created_at }}</p>
+        </div>
+      </section>
+    </div>
+    {% if payload.stats %}
+    <div class="col-lg-5">
+      <section class="panel" aria-labelledby="topic-h">
+        <div class="panel-head"><h2 id="topic-h">Average by topic</h2><span class="panel-note">Calculated, not AI</span></div>
+        <div class="table-responsive">
+          <table class="table align-middle">
+            <thead><tr><th>Topic</th><th class="text-end">Marked</th><th class="text-end">Average</th></tr></thead>
+            <tbody>
+            {% for t in payload.stats.topics %}
+              <tr><td>{{ t.topic }}</td><td class="text-end">{{ t.assessments }}</td><td class="text-end fw-semibold">{{ t.percent }}%</td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+    {% endif %}
+  </div>
+{% else %}
+  <div class="panel"><div class="panel-body">
+    <p class="mb-1">No summary yet.</p>
+    <p class="text-muted mb-0">Create one to see strong and weak topics and a short study plan based on {{ 'your' if g.user.role == 'student' else 'their' }} marked work.</p>
+  </div></div>
+{% endif %}
+{% endblock %}

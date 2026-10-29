@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}AI Lab Assessment{% endblock %} – AI Lab Assessment</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/app.css') }}" rel="stylesheet">
+</head>
+<body>
+{% macro brand_mark() -%}
+<span class="brand-mark" aria-hidden="true">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9fe0de" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 3h6M10 3v6.2L4.6 18.4A1.7 1.7 0 0 0 6.1 21h11.8a1.7 1.7 0 0 0 1.5-2.6L14 9.2V3"/>
+    <circle cx="10" cy="16" r="1.2" fill="#9fe0de" stroke="none"/><circle cx="14.5" cy="14" r="1" fill="#9fe0de" stroke="none"/>
+  </svg>
+</span>
+{%- endmacro %}
+
+{% macro nav_link(endpoint, icon, label, match=None) -%}
+  {% set active = request.endpoint == endpoint or (match and request.endpoint in match) %}
+  <li><a href="{{ url_for(endpoint) }}" class="{{ 'active' if active }}" {{ 'aria-current=page' if active }}><i class="bi {{ icon }}"></i>{{ label }}</a></li>
+{%- endmacro %}
+
+{% if g.user %}
+<header class="topbar">
+  <a class="brand" href="{{ url_for('auth.index') }}">{{ brand_mark() }}<span>AI Lab Assessment</span></a>
+  <button class="btn btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebar" aria-controls="sidebar" aria-label="Open menu">
+    <i class="bi bi-list"></i> Menu
+  </button>
+</header>
+<div class="app-shell">
+  <aside class="sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="sidebar" aria-label="Main navigation">
+    <div class="offcanvas-body">
+      <div class="d-flex align-items-start justify-content-between">
+        <a class="brand" href="{{ url_for('auth.index') }}">{{ brand_mark() }}<span>AI Lab Assessment<small>Artificial Intelligence lab</small></span></a>
+        <button type="button" class="btn-close d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#sidebar" aria-label="Close menu"></button>
+      </div>
+      <ul class="side-nav">
+        {% if g.user.role == 'teacher' %}
+          {{ nav_link('teacher.dashboard', 'bi-grid', 'Overview', ['teacher.student_detail', 'teacher.student_summary']) }}
+          {{ nav_link('teacher.questions', 'bi-chat-square-text', 'Viva questions', ['teacher.edit_question']) }}
+          {{ nav_link('teacher.generate_form', 'bi-stars', 'Generate questions') }}
+          {{ nav_link('teacher.new_assignment', 'bi-plus-square', 'New assignment') }}
+        {% else %}
+          {{ nav_link('student.dashboard', 'bi-grid', 'My work', ['student.viva_question', 'student.assignment']) }}
+          {{ nav_link('student.summary', 'bi-graph-up', 'My progress') }}
+        {% endif %}
+      </ul>
+      <div class="side-footer">
+        <div class="side-user">{{ g.user.full_name }}</div>
+        <div class="side-role">{{ g.user.role|capitalize }} account, {{ g.user.username }}</div>
+        {% if ai_configured %}
+          <div class="ai-chip ok" title="Model: {{ ai_model }}"><span class="dot"></span>{{ ai_name }} connected</div>
+        {% else %}
+          <div class="ai-chip off" title="Add the {{ ai_name }} API key to .env and restart"><span class="dot"></span>AI not configured</div>
+        {% endif %}
+        <form method="post" action="{{ url_for('auth.logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm btn-logout">Log out</button>
+        </form>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <main class="main-inner">
+      {% include "partials/flashes.html" %}
+      {% block content %}{% endblock %}
+    </main>
+    {% block footer %}
+    <footer class="app-footer">
+      AI-generated feedback is a learning aid and may contain mistakes. Test results come from the
+      automated test engine; similarity scores require human review.
+    </footer>
+    {% endblock %}
+  </div>
+</div>
+{% else %}
+<main class="container py-5">
+  {% include "partials/flashes.html" %}
+  {% block public_content %}{{ self.content() }}{% endblock %}
+</main>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

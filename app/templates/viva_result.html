@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import source_badge %}
+{% block title %}Viva result{% endblock %}
+{% block content %}
+<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ url_for('auth.index') }}">{{ 'Overview' if g.user.role == 'teacher' else 'My work' }}</a> / Viva result</nav>
+<div class="page-head">
+  <div>
+    <h1>{{ attempt.question }}</h1>
+    <p>{{ attempt.experiment }}{% if g.user.role == 'teacher' %}. Answer by {{ attempt.student_name }}{% endif %}</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7 order-lg-2">
+    {% if score %}
+      {% set pct = (100 * score.score / score.max_score) if score.max_score else 0 %}
+      <section class="panel {{ 'is-ai' if score.source != 'rule_based' }} mb-4" aria-labelledby="score-h">
+        <div class="panel-head"><h2 id="score-h">Your mark</h2>{{ source_badge(score.source, score.model) }}</div>
+        <div class="panel-body">
+          <div class="score-hero">
+            <div class="gauge {{ 'is-rule' if score.source == 'rule_based' }}" style="--pct: {{ pct }}" role="img" aria-label="{{ '%g'|format(score.score) }} out of {{ '%g'|format(score.max_score) }}">
+              <div class="gauge-value"><strong>{{ '%g'|format(score.score) }}</strong><span>out of {{ '%g'|format(score.max_score) }}</span></div>
+            </div>
+            {% if payload %}
+            <div class="flex-grow-1" style="min-width: 220px; max-width: 46ch">
+              <p class="mb-0">{{ payload.feedback }}</p>
+            </div>
+            {% endif %}
+          </div>
+          {% if score.source == 'rule_based' %}
+            <div class="notice notice-rule mt-3">This is a <strong>rule-based keyword estimate, not an AI assessment</strong>. It only checks whether key ideas are mentioned, not whether they're explained correctly. Ask your teacher to review it, or retry with AI.</div>
+            <form method="post" action="{{ url_for('shared.retry_attempt', attempt_id=attempt.id) }}" class="mt-3" data-busy-form>
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-ai btn-sm" data-busy-text="Marking…"><i class="bi bi-stars"></i> Mark again with {{ ai_name }}</button>
+            </form>
+          {% endif %}
+        </div>
+      </section>
+
+      {% if payload %}
+      <section class="panel" aria-labelledby="fb-h">
+        <div class="panel-head"><h2 id="fb-h">Feedback</h2></div>
+        <div class="panel-body">
+          <div class="row g-4">
+            <div class="col-md-6">
+              <h3>What you got right</h3>
+              <ul class="concepts got">{% for c in payload.correct_concepts %}<li>{{ c }}</li>{% else %}<li>Nothing matched yet</li>{% endfor %}</ul>
+            </div>
+            <div class="col-md-6">
+              <h3>What's missing</h3>
+              <ul class="concepts missing">{% for c in payload.missing_concepts %}<li>{{ c }}</li>{% else %}<li>Nothing</li>{% endfor %}</ul>
+            </div>
+          </div>
+          {% if payload.strengths %}
+            <h3 class="mt-4">Strengths</h3>
+            <ul class="mb-0">{% for s in payload.strengths %}<li>{{ s }}</li>{% endfor %}</ul>
+          {% endif %}
+          <h3 class="mt-4">How to improve</h3>
+          <p class="mb-0">{{ payload.suggestion }}</p>
+        </div>
+      </section>
+      {% endif %}
+
+    {% elif attempt.status == 'ai_failed' %}
+      <section class="panel is-danger" aria-labelledby="fail-h">
+        <div class="panel-head"><h2 id="fail-h"><i class="bi bi-exclamation-octagon"></i> Not marked yet</h2></div>
+        <div class="panel-body">
+          <p>{{ attempt.last_error }}</p>
+          <p class="text-muted small">Your answer is saved. No mark has been recorded.</p>
+          <div class="d-flex flex-wrap gap-2">
+            <form method="post" action="{{ url_for('shared.retry_attempt', attempt_id=attempt.id) }}" data-busy-form>
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-ai" data-busy-text="Marking…"><i class="bi bi-arrow-clockwise"></i> Retry AI assessment</button>
+            </form>
+            {% if allow_fallback %}
+            <form method="post" action="{{ url_for('shared.fallback_attempt', attempt_id=attempt.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-rule"><i class="bi bi-rulers"></i> Use a rule-based estimate (not AI)</button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    {% else %}
+      <section class="panel">
+        <div class="panel-body">
+          <p>This answer is waiting to be marked.</p>
+          <form method="post" action="{{ url_for('shared.retry_attempt', attempt_id=attempt.id) }}" data-busy-form>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-ai" data-busy-text="Marking…">Mark it now</button>
+          </form>
+        </div>
+      </section>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-5 order-lg-1">
+    <section class="panel mb-4" aria-labelledby="ans-h">
+      <div class="panel-head"><h2 id="ans-h">Submitted answer</h2><span class="panel-note">{{ attempt.created_at }}</span></div>
+      <div class="panel-body"><div class="answer-text">{{ attempt.answer }}</div></div>
+    </section>
+    {% if g.user.role == 'teacher' %}
+    <section class="panel" aria-labelledby="key-h">
+      <div class="panel-head"><h2 id="key-h">Reference answer and rubric</h2><span class="panel-note">Teachers only</span></div>
+      <div class="panel-body small">
+        <p>{{ attempt.reference_answer }}</p>
+        <p class="mb-0"><strong>Rubric:</strong> {{ attempt.rubric }}</p>
+      </div>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

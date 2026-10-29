@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ assignment.title }}{% endblock %}
+{% block content %}
+<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ url_for('student.dashboard') }}">My work</a> / {{ assignment.title }}</nav>
+<div class="page-head">
+  <div>
+    <h1>{{ assignment.title }}</h1>
+    <p>{{ assignment.description }}</p>
+  </div>
+</div>
+<div class="row g-4">
+  <div class="col-lg-8 order-lg-1">
+    <form method="post" data-busy-form class="panel">
+      <div class="panel-head"><h2><label for="code" class="m-0">Your code</label></h2>
+        <span class="panel-note">Define <code>{{ assignment.function_name }}</code></span></div>
+      <div class="panel-body">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <textarea class="form-control code-editor" id="code" name="code" rows="20" spellcheck="false" maxlength="{{ max_chars }}" data-counter="#code-count" aria-describedby="code-help">{{ code }}</textarea>
+        <div class="d-flex justify-content-between flex-wrap gap-2 mt-3 align-items-center">
+          <span class="small text-muted" id="code-help"><span id="code-count">0</span>/{{ max_chars }} characters. Tab inserts 4 spaces.</span>
+          <button class="btn btn-primary" data-busy-text="Running tests…"><i class="bi bi-play-fill"></i> Run tests and submit</button>
+        </div>
+      </div>
+    </form>
+  </div>
+  <div class="col-lg-4 order-lg-2">
+    <section class="panel is-engine mb-3" aria-labelledby="tests-h">
+      <div class="panel-head"><h2 id="tests-h">Test cases</h2></div>
+      <ul class="rows small">
+        {% for t in tests %}
+          <li>
+            <div class="text-muted">{{ t.description or ('Test ' ~ loop.index) }}</div>
+            <code>{{ assignment.function_name }}(*{{ t.args_json }})</code> should return <code>{{ t.expected_json }}</code>
+          </li>
+        {% endfor %}
+        {% if hidden_count %}<li class="text-muted">Plus {{ hidden_count }} hidden test{{ 's' if hidden_count > 1 }} you can't see.</li>{% endif %}
+      </ul>
+    </section>
+    <div class="notice notice-plain small">
+      Your code runs in a locked-down process with a time limit. You can import math, itertools, collections,
+      functools, heapq, bisect, string, random, statistics, copy, queue, typing, dataclasses and re.
+      Files, network and the operating system are blocked.
+    </div>
+  </div>
+</div>
+{% endblock %}

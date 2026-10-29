@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Similarity{% endblock %}
+{% block content %}
+{% set pct = (c.similarity * 100)|round|int %}
+<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ url_for('teacher.dashboard') }}">Overview</a> /
+  <a href="{{ url_for('teacher.assignment_detail', assignment_id=c.assignment_id) }}">{{ c.title }}</a> / Similarity</nav>
+<div class="page-head">
+  <div>
+    <h1>{{ c.name_a }} and {{ c.name_b }}: {{ pct }}% similar</h1>
+    <p>Sequence match {{ (details.sequence_ratio * 100)|round|int }}%, shared 5-token fingerprints {{ (details.fingerprint_overlap * 100)|round|int }}%.</p>
+  </div>
+</div>
+{% if c.similarity >= threshold %}
+  <div class="notice notice-rule mb-3"><i class="bi bi-exclamation-triangle-fill"></i> These submissions appear similar (at or above {{ (threshold * 100)|round|int }}%). This is <strong>not</strong> proof of plagiarism. Review the matching sections and talk to both students before deciding anything.</div>
+{% endif %}
+<p class="small text-muted">{{ review_note }}</p>
+
+<h2 class="mt-4">Matching sections</h2>
+{% for s in details.matching_sections %}
+  <div class="row g-3 mb-3">
+    <div class="col-md-6"><div class="small text-muted mb-1">{{ c.name_a }}, lines {{ s.a_lines[0] }}–{{ s.a_lines[1] }}</div><pre class="code-block match">{{ s.a_excerpt }}</pre></div>
+    <div class="col-md-6"><div class="small text-muted mb-1">{{ c.name_b }}, lines {{ s.b_lines[0] }}–{{ s.b_lines[1] }}</div><pre class="code-block match">{{ s.b_excerpt }}</pre></div>
+  </div>
+{% else %}
+  <p class="text-muted">No section of 8 or more matching tokens.</p>
+{% endfor %}
+
+<h2 class="mt-4">Full submissions</h2>
+<div class="row g-3">
+  <div class="col-md-6"><div class="small text-muted mb-1">{{ c.name_a }}</div><pre class="code-block" style="border-radius: 8px">{{ c.code_a }}</pre></div>
+  <div class="col-md-6"><div class="small text-muted mb-1">{{ c.name_b }}</div><pre class="code-block" style="border-radius: 8px">{{ c.code_b }}</pre></div>
+</div>
+{% endblock %}

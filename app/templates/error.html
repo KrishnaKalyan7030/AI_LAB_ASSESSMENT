@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="error-page">
+  <div>
+    <div class="error-code">{{ code }}</div>
+    <h1 class="mt-2">{{ title }}</h1>
+    <p class="text-muted mx-auto" style="max-width: 52ch">{{ message }}</p>
+    <a class="btn btn-primary" href="{{ url_for('auth.index') }}">Go to my dashboard</a>
+  </div>
+</div>
+{% endblock %}

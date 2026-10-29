@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Viva questions{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Viva questions</h1>
+    <p>Students only see published questions. Review AI-generated drafts before publishing them.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-outline-primary" href="{{ url_for('teacher.edit_question') }}"><i class="bi bi-plus-lg"></i> Write a question</a>
+    <a class="btn btn-ai" href="{{ url_for('teacher.generate_form') }}"><i class="bi bi-stars"></i> Generate with {{ ai_name }}</a>
+  </div>
+</div>
+<ul class="nav nav-pills mb-3" aria-label="Filter questions">
+  <li class="nav-item"><a class="nav-link {{ 'active' if not status }}" href="{{ url_for('teacher.questions') }}">All</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if status == 'draft' }}" href="{{ url_for('teacher.questions', status='draft') }}">Drafts</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if status == 'published' }}" href="{{ url_for('teacher.questions', status='published') }}">Published</a></li>
+</ul>
+<section class="panel">
+  <ul class="rows">
+    {% for q in questions %}
+      <li>
+        <div class="d-flex justify-content-between gap-3 flex-wrap">
+          <div style="max-width: 70ch">
+            <div class="row-meta">{{ q.experiment }}, {{ q.difficulty }}, {{ q.max_score }} marks
+              {% if q.ai_generated %}<span class="src src-ai ms-1"><i class="bi bi-stars"></i>AI draft</span>{% endif %}</div>
+            <div>{{ q.question }}</div>
+          </div>
+          <div class="d-flex gap-2 align-items-start flex-shrink-0">
+            <span class="pill {{ 'pill-pass' if q.status == 'published' else 'pill-draft' }}">{{ q.status|capitalize }}</span>
+            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('teacher.edit_question', question_id=q.id) }}">{{ 'Review and edit' if q.status == 'draft' else 'Edit' }}</a>
+            {% if q.status == 'draft' %}
+              <form method="post" action="{{ url_for('teacher.publish_question', question_id=q.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-primary">Publish</button></form>
+            {% else %}
+              <form method="post" action="{{ url_for('teacher.unpublish_question', question_id=q.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-outline-secondary">Unpublish</button></form>
+            {% endif %}
+          </div>
+        </div>
+      </li>
+    {% else %}
+      <li class="empty">No questions here yet.</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

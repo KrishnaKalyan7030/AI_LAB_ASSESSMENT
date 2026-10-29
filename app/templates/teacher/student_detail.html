@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import source_badge, meter, tests_pill %}
+{% block title %}{{ student.full_name }}{% endblock %}
+{% block content %}
+<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ url_for('teacher.dashboard') }}">Overview</a> / {{ student.full_name }}</nav>
+<div class="page-head">
+  <div>
+    <h1>{{ student.full_name }}</h1>
+    <p>Username {{ student.username }}. {{ attempts|length }} viva answer{{ '' if attempts|length == 1 else 's' }} and {{ submissions|length }} program submission{{ '' if submissions|length == 1 else 's' }}.</p>
+  </div>
+  <a class="btn btn-outline-primary" href="{{ url_for('teacher.student_summary', student_id=student.id) }}"><i class="bi bi-graph-up"></i> Progress summary</a>
+</div>
+<div class="row g-4">
+  <div class="col-xl-7">
+    <section class="panel" aria-labelledby="v-h">
+      <div class="panel-head"><h2 id="v-h">Viva answers</h2></div>
+      <div class="table-responsive"><table class="table align-middle">
+        <thead><tr><th>Question</th><th style="width: 30%">Score</th><th>Marked by</th></tr></thead>
+        <tbody>
+        {% for a in attempts %}
+          <tr>
+            <td><a href="{{ url_for('shared.view_attempt', attempt_id=a.id) }}">{{ a.question|truncate(60) }}</a></td>
+            <td>{% if a.score is not none %}{{ meter(a.score, a.max_score) }}{% else %}<span class="pill pill-draft">{{ 'Not marked' if a.status == 'ai_failed' else 'Waiting' }}</span>{% endif %}</td>
+            <td>{{ source_badge(a.source) }}</td>
+          </tr>
+        {% else %}<tr><td colspan="3" class="text-muted">No viva answers yet.</td></tr>{% endfor %}
+        </tbody></table></div>
+    </section>
+  </div>
+  <div class="col-xl-5">
+    <section class="panel" aria-labelledby="p-h">
+      <div class="panel-head"><h2 id="p-h">Program submissions</h2></div>
+      <div class="table-responsive"><table class="table align-middle">
+        <thead><tr><th>Assignment</th><th>Tests</th></tr></thead>
+        <tbody>
+        {% for s in submissions %}
+          <tr><td><a href="{{ url_for('shared.view_submission', submission_id=s.id) }}">{{ s.title }}</a><div class="row-meta">{{ s.created_at }}</div></td>
+              <td>{{ tests_pill(s.passed, s.total) }}</td></tr>
+        {% else %}<tr><td colspan="2" class="text-muted">No submissions yet.</td></tr>{% endfor %}
+        </tbody></table></div>
+    </section>
+  </div>
+</div>
+{% endblock %}

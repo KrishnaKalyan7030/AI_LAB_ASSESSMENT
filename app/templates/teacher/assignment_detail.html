@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import tests_pill %}
+{% block title %}{{ assignment.title }}{% endblock %}
+{% block content %}
+<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ url_for('teacher.dashboard') }}">Overview</a> / {{ assignment.title }}</nav>
+<div class="page-head">
+  <div>
+    <h1>{{ assignment.title }}</h1>
+    <p>{{ assignment.description }}</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <section class="panel" aria-labelledby="sub-h">
+      <div class="panel-head"><h2 id="sub-h">Submissions</h2><span class="panel-note">{{ submissions|length }} total</span></div>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead><tr><th>Student</th><th>Tests</th><th>Submitted</th></tr></thead>
+          <tbody>
+          {% for s in submissions %}
+            <tr>
+              <td><a href="{{ url_for('shared.view_submission', submission_id=s.id) }}">{{ s.full_name }}</a></td>
+              <td>{{ tests_pill(s.passed, s.total, s.static_errors) }}</td>
+              <td class="row-meta">{{ s.created_at }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="3" class="text-muted">No submissions yet.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+  <div class="col-lg-5">
+    <section class="panel is-engine" aria-labelledby="t-h">
+      <div class="panel-head"><h2 id="t-h">Test cases</h2><span class="panel-note">Function <code>{{ assignment.function_name }}</code></span></div>
+      <ul class="rows small">
+        {% for t in tests %}
+          <li>{% if t.is_hidden %}<span class="pill pill-draft me-1">hidden</span>{% endif %}{{ t.description or ('Test ' ~ loop.index) }}<br>
+            <code>{{ t.args_json }}</code> should return <code>{{ t.expected_json }}</code></li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+
+  <div class="col-12" id="similarity">
+    <section class="panel" aria-labelledby="sim-h">
+      <div class="panel-head">
+        <h2 id="sim-h">Code similarity</h2>
+        <form method="post" action="{{ url_for('teacher.run_similarity', assignment_id=assignment.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-primary btn-sm"><i class="bi bi-intersect"></i> Compare latest submissions</button>
+        </form>
+      </div>
+      <div class="panel-body pb-0">
+        <div class="notice notice-plain small">{{ review_note }} Pairs at or above {{ (threshold * 100)|round|int }}% are highlighted. This check uses code tokens, not AI.</div>
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle mt-2">
+          <thead><tr><th>Student A</th><th>Student B</th><th style="width: 34%">Similarity</th><th></th></tr></thead>
+          <tbody>
+          {% for c in comparisons %}
+            {% set pct = (c.similarity * 100)|round|int %}
+            {% set flagged = c.similarity >= threshold %}
+            <tr>
+              <td>{{ c.name_a }}</td>
+              <td>{{ c.name_b }}</td>
+              <td>
+                <div class="meter">
+                  <div class="meter-track"><div class="meter-fill {{ 'mid' if flagged else '' }}" style="width: {{ pct }}%"></div></div>
+                  <span class="meter-text">{{ pct }}%</span>
+                  {% if flagged %}<i class="bi bi-exclamation-triangle-fill text-warning" title="Above the warning threshold"></i>{% endif %}
+                </div>
+              </td>
+              <td class="text-end"><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('teacher.similarity_detail', comparison_id=c.id) }}">Compare side by side</a></td>
+            </tr>
+          {% else %}
+            <tr><td colspan="4" class="text-muted">Not compared yet. Run the comparison to check each student's latest submission against the others.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

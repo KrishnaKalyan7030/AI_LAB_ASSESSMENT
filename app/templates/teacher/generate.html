@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Generate viva questions{% endblock %}
+{% block content %}
+<nav class="crumbs" aria-label="Breadcrumb"><a href="{{ url_for('teacher.questions') }}">Viva questions</a> / Generate</nav>
+<div class="page-head">
+  <div>
+    <h1>Generate viva questions with {{ ai_name }}</h1>
+    <p>New questions are saved as drafts with a model answer and marking scheme. Review and edit them before students can see them.</p>
+  </div>
+</div>
+<div class="row g-4">
+  <div class="col-lg-8">
+    <form method="post" class="panel is-ai" data-busy-form novalidate>
+      <div class="panel-body">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row g-3">
+          <div class="col-md-6"><label class="form-label" for="subject">Subject</label>
+            <input class="form-control" id="subject" name="subject" value="{{ form.get('subject', 'Artificial Intelligence Laboratory') }}" required maxlength="200"></div>
+          <div class="col-md-6"><label class="form-label" for="experiment">Experiment</label>
+            <input class="form-control" id="experiment" name="experiment" value="{{ form.get('experiment', '') }}" required maxlength="200" placeholder="Water jug problem using BFS"></div>
+          <div class="col-md-4"><label class="form-label" for="difficulty">Difficulty</label>
+            <select class="form-select" id="difficulty" name="difficulty">{% for d in ['easy', 'medium', 'hard'] %}<option value="{{ d }}" {{ 'selected' if form.get('difficulty', 'medium') == d }}>{{ d|capitalize }}</option>{% endfor %}</select></div>
+          <div class="col-md-4"><label class="form-label" for="count">How many questions</label>
+            <input class="form-control" type="number" id="count" name="count" min="1" max="{{ max_count }}" value="{{ form.get('count', 3) }}" required></div>
+          <div class="col-md-4"><label class="form-label" for="max_score">Marks per question</label>
+            <input class="form-control" type="number" id="max_score" name="max_score" min="1" max="20" value="{{ form.get('max_score', default_max) }}" required></div>
+        </div>
+        <button class="btn btn-ai mt-4" data-busy-text="Generating…"><i class="bi bi-stars"></i> Generate drafts</button>
+      </div>
+    </form>
+  </div>
+  <div class="col-lg-4">
+    {% if not ai_configured %}
+      <div class="notice notice-rule">AI isn't set up on this server, so generating will fail. You can still <a href="{{ url_for('teacher.edit_question') }}">write a question yourself</a>.</div>
+    {% else %}
+      <div class="notice notice-plain small">Up to {{ max_count }} questions at a time. Smaller batches are faster on the free AI plan.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
